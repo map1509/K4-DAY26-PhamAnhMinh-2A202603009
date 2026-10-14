@@ -9,12 +9,42 @@ Cách chạy:
     python weather_function_calling.py
 """
 
+import os
+from pathlib import Path
+
+from dotenv import dotenv_values
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
-client = genai.Client()
+env_file = Path(__file__).resolve().parents[1] / "04-lab" / "mcp-client" / ".env"
+env_values = dotenv_values(env_file)
+api_key = (
+    os.getenv("GEMINI_API_KEY")
+    or os.getenv("GOOGLE_API_KEY")
+    or env_values.get("GEMINI_API_KEY")
+    or env_values.get("GOOGLE_API_KEY")
+)
+if not api_key:
+    raise ValueError(
+        "Hãy điền GOOGLE_API_KEY trong 04-lab/mcp-client/.env "
+        "hoặc đặt biến môi trường GEMINI_API_KEY."
+    )
+client = genai.Client(
+    api_key=api_key,
+    http_options=types.HttpOptions(
+        timeout=60_000,
+        retry_options=types.HttpRetryOptions(
+            attempts=5,
+            initial_delay=2,
+            max_delay=16,
+            exp_base=2,
+            jitter=1,
+            http_status_codes=[500, 502, 503, 504],
+        ),
+    ),
+)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.8-flash"
 
 SYSTEM_INSTRUCTION = (
     "Bạn là trợ lý thời tiết thân thiện, trả lời bằng tiếng Việt tự nhiên. "
@@ -31,7 +61,8 @@ get_weather_declaration = types.FunctionDeclaration(
         type=types.Type.OBJECT,
         properties={
             "city": types.Schema(
-                type=types.Type.STRING, description="Tên thành phố"
+                type=types.Type.STRING,
+                description="Tên thành phố bằng tiếng Việt có dấu: Hà Nội, Hồ Chí Minh, Đà Nẵng",
             )
         },
         required=["city"],
@@ -120,4 +151,13 @@ def run(prompt: str) -> str:
 if __name__ == "__main__":
     question = "Thời tiết Hà Nội và Đà Nẵng hôm nay thế nào?"
     print(f"User: {question}\n")
-    print("Trả lời:", run(question))
+    try:
+        print("Trả lời:", run(question))
+    except errors.ServerError as exc:
+        if exc.code not in (500, 502, 503, 504):
+            raise
+        print(
+            f"Gemini tạm thời không khả dụng (HTTP {exc.code}) sau khi thử lại. "
+            "Hãy chờ một lúc rồi chạy lại chương trình."
+        )
+        raise SystemExit(1) from None

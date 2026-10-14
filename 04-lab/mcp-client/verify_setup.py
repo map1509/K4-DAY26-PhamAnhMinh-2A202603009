@@ -27,7 +27,7 @@ def check_environment():
         print("   Get key from: https://aistudio.google.com/apikey")
         return False
     
-    print(f"✅ GOOGLE_API_KEY configured ({api_key[:10]}...)")
+    print("✅ GOOGLE_API_KEY configured")
     return True
 
 def check_dependencies():
@@ -115,7 +115,7 @@ def check_agent_import():
         
         from weather_agent import root_agent
         print(f"✅ Agent imported successfully: {root_agent.name}")
-        print(f"   Model: {root_agent.model}")
+        print(f"   Model: {getattr(root_agent.model, 'model', root_agent.model)}")
         return True
     except Exception as e:
         print(f"❌ Failed to import agent: {e}")
@@ -140,8 +140,8 @@ def main():
     if all(checks):
         print("✅ All checks passed!")
         print("\n🚀 Ready to start!")
-        print("   Run: uv run adk web")
-        print("\n📍 Then open: http://localhost:8000")
+        print("   Run: uv run adk web --host 127.0.0.1 --port 8001")
+        print("\n📍 Then open: http://127.0.0.1:8001")
         return 0
     else:
         print("❌ Some checks failed")

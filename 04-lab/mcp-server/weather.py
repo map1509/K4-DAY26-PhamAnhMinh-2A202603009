@@ -2,7 +2,11 @@ from typing import Any
 import asyncio
 import httpx
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # Initialize FastMCP server
 port = int(os.getenv("PORT", 8085))
